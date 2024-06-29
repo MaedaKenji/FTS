@@ -114,13 +114,14 @@ def main():
 
     # # Print input file predicted prices
     # for i, price in enumerate(predicted_prices):
-    #     print(f"{i+1}. Predicted price: {price}")
+    #     print(f"Harga: {df_combined.iloc[i]['Harga']}, Prediksi: {price}")
 
     # # Print user input predicted prices
     # print("Input your price: ")
     # price = float(input())
     # predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
     # print(f"Predicted price: {predicted_price}")
+
 
     
 
