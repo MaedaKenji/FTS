@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import math
+from sklearn.model_selection import train_test_split
 
 def ensure_date_format(date_str, year):
     try:
@@ -65,7 +66,7 @@ def calculate_flrg(df):
     for i, interval in enumerate(intervals):
         median = (interval[0] + interval[1]) / 2
         interval_medians[f'A{i+1}'] = median
-        print(f"A{i+1}: {interval[0]} - {interval[1]} -> {median}")
+        # print(f"A{i+1}: {interval[0]} - {interval[1]} -> {median}")
     relationships = []
     for i in range(len(df) - 1):
         current_class = determine_interval(df.iloc[i]['Harga'], intervals, k)
@@ -89,27 +90,69 @@ def main():
     output_file_path = 'harga_singkong_augmented.csv'
     input_file_path2 = 'harga_singkong_augmented.csv'
     output_file_path2 = 'harga_singkong_augmented2.csv'
+    validation_file_path = 'validation.csv'
 
     df_combined = augment_data(input_file_path2, output_file_path2)
-    print("Data gabungan telah disimpan ke file:", output_file_path2)
-    print(df_combined)
+    # print("Data gabungan telah disimpan ke file:", output_file_path2)
+    # print(df_combined)
 
-    flrg, intervals, interval_medians, k = calculate_flrg(df_combined)
-    print("\nNilai FLRG:")
-    for key in sorted(flrg.keys()):
-        print(f"{key} -> {flrg[key]}")
+    # Perhitungan pertama: Split dataset 70:30
+    print("\n--- Perhitungan dengan Split Dataset 70:30 ---")
+    train_df, val_df = train_test_split(df_combined, test_size=0.3, shuffle=False)
 
+    flrg, intervals, interval_medians, k = calculate_flrg(train_df)
+    # print("\nNilai FLRG:")
+    # for key in sorted(flrg.keys()):
+    #     print(f"{key} -> {flrg[key]}")
+
+    # Prediksi untuk set validasi (30% data)
     predicted_prices = []
-    for i in range(len(df_combined) - 1):
-        current_price = df_combined.iloc[i]['Harga']
+    for i in range(len(val_df)):
+        current_price = val_df.iloc[i]['Harga']
         predicted_price = predict_next_price(current_price, intervals, interval_medians, flrg, k)
         predicted_prices.append(predicted_price)
 
-    df_predictions = df_combined.iloc[1:].copy()
-    df_predictions['Predicted'] = predicted_prices
+    val_df['Predicted'] = predicted_prices
 
-    mape = np.mean(np.abs((df_predictions['Harga'] - df_predictions['Predicted']) /df_predictions['Harga'])) * 100
-    print(f"MAPE: {mape:.5f}%")
+    # Menghitung MAPE untuk set validasi (30% data)
+    mape = np.mean(np.abs((val_df['Harga'] - val_df['Predicted']) / val_df['Harga'])) * 100
+    print(f"MAPE pada set validasi (30% data): {mape:.5f}%")
+
+    # Menampilkan beberapa prediksi
+    print("\nBeberapa prediksi pada set validasi (30% data):")
+    print(val_df[['Date', 'Harga', 'Predicted']].head())
+
+    # Perhitungan kedua: Menggunakan file validasi.csv
+    print("\n--- Perhitungan dengan File Validasi Eksternal ---")
+    
+    # Menggunakan seluruh data untuk training
+    flrg, intervals, interval_medians, k = calculate_flrg(df_combined)
+    
+    # Membaca data validasi
+    external_val_df = pd.read_csv(validation_file_path)
+
+    # Prediksi untuk set validasi eksternal
+    predicted_prices = []
+    for price in external_val_df['Input']:
+        predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
+        predicted_prices.append(predicted_price)
+
+    external_val_df['Predicted'] = predicted_prices
+
+    # Menghitung MAPE untuk set validasi eksternal
+    mape = np.mean(np.abs((external_val_df['Real_values'] - external_val_df['Predicted']) / external_val_df['Real_values'])) * 100
+    print(f"MAPE pada set validasi eksternal: {mape:.5f}%")
+
+    # Menampilkan beberapa prediksi
+    print("\nBeberapa prediksi pada set validasi eksternal:")
+    print(external_val_df.head())
+
+    # Opsi: Menampilkan statistik tambahan untuk validasi eksternal
+    mae = np.mean(np.abs(external_val_df['Real_values'] - external_val_df['Predicted']))
+    rmse = np.sqrt(np.mean((external_val_df['Real_values'] - external_val_df['Predicted'])**2))
+    print(f"\nStatistik tambahan untuk validasi eksternal:")
+    print(f"MAE: {mae:.2f}")
+    print(f"RMSE: {rmse:.2f}")
 
 
     # # Print input file predicted prices
