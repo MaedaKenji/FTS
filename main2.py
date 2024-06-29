@@ -58,6 +58,8 @@ def calculate_flrg(df):
     width = range_data / k
     intervals = []
     start = df['Harga'].min()
+
+
     for i in range(k):
         end = start + width
         intervals.append((start, end))
@@ -82,7 +84,19 @@ def calculate_flrg(df):
         next_intervals = list(relationship_dict[current])
         relevant_medians = [interval_medians[interval] for interval in next_intervals]
         flrg[current] = np.mean(relevant_medians)
-    return flrg, intervals, interval_medians, k
+    return flrg, intervals, interval_medians, k, relationships
+
+def print_flrg_mapping(relationships):
+    print("\nHasil Mapping FLRG:")
+    flrg = {}
+    for current, next_ in relationships:
+        if current not in flrg:
+            flrg[current] = set()
+        flrg[current].add(next_)
+    
+    for current, next_set in sorted(flrg.items()):
+        next_classes = ','.join(sorted(next_set))
+        print(f"{current} -> {next_classes}")
 
 
 def main():
@@ -93,14 +107,18 @@ def main():
     validation_file_path = 'validation.csv'
 
     df_combined = augment_data(input_file_path2, output_file_path2)
-    # print("Data gabungan telah disimpan ke file:", output_file_path2)
+    print("Data gabungan telah disimpan ke file:", output_file_path2)
     # print(df_combined)
+
+    flrg, intervals, interval_medians, k, relationships= calculate_flrg(df_combined)
+    # print("\nMapping FLRG untuk seluruh dataset:")
+    print_flrg_mapping(relationships)
 
     # Perhitungan pertama: Split dataset 70:30
     print("\n--- Perhitungan dengan Split Dataset 70:30 ---")
     train_df, val_df = train_test_split(df_combined, test_size=0.3, shuffle=False)
 
-    flrg, intervals, interval_medians, k = calculate_flrg(train_df)
+    flrg, intervals, interval_medians, k, relationships = calculate_flrg(train_df)
     # print("\nNilai FLRG:")
     # for key in sorted(flrg.keys()):
     #     print(f"{key} -> {flrg[key]}")
@@ -126,7 +144,7 @@ def main():
     print("\n--- Perhitungan dengan File Validasi Eksternal ---")
     
     # Menggunakan seluruh data untuk training
-    flrg, intervals, interval_medians, k = calculate_flrg(df_combined)
+    flrg, intervals, interval_medians, k, relationships= calculate_flrg(df_combined)
     
     # Membaca data validasi
     external_val_df = pd.read_csv(validation_file_path)
@@ -154,6 +172,7 @@ def main():
     print(f"MAE: {mae:.2f}")
     print(f"RMSE: {rmse:.2f}")
 
+    
 
     # # Print input file predicted prices
     # for i, price in enumerate(predicted_prices):
