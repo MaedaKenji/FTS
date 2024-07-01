@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+
 
 def ensure_date_format(date_str, year):
     try:
@@ -40,6 +42,7 @@ def augment_data(file_path, output_path, year=2020):
 def determine_interval(value, intervals, k):
     for i, interval in enumerate(intervals):
         if interval[0] <= value < interval[1]:
+            # print(f"Interval: {interval[0]} - {interval[1]}")
             return f'A{i+1}'
     return f'A{k}'  # untuk nilai yang tepat sama dengan batas atas
 
@@ -68,7 +71,7 @@ def calculate_flrg(df):
     for i, interval in enumerate(intervals):
         median = (interval[0] + interval[1]) / 2
         interval_medians[f'A{i+1}'] = median
-        # print(f"A{i+1}: {interval[0]} - {interval[1]} -> {median}")
+        print(f"A{i+1}: {interval[0]} - {interval[1]} -> {median}")
     relationships = []
     for i in range(len(df) - 1):
         current_class = determine_interval(df.iloc[i]['Harga'], intervals, k)
@@ -183,6 +186,52 @@ def main():
     # price = float(input())
     # predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
     # print(f"Predicted price: {predicted_price}")
+
+   
+
+# Data yang diberikan
+
+import matplotlib.pyplot as plt
+
+data = {
+    "Class": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"],
+    "Batas Bawah": [3077.00, 3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75],
+    "Median": [3100.625, 3147.875, 3195.125, 3242.375, 3289.625, 3336.875, 3384.125, 3431.375],
+    "Batas Atas": [3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75, 3455.00]
+}
+
+# Transpose the data
+transposed_data = list(zip(*data.values()))
+
+fig, ax = plt.subplots(figsize=(6, 2))
+
+# Create the table
+table = ax.table(cellText=transposed_data,
+                 colLabels=list(data.keys()),
+                 loc='center')
+
+
+# Remove table lines and center the text
+table.auto_set_font_size(False)
+table.set_fontsize(12)
+table.scale(1.2, 1.2)
+
+for key, cell in table.get_celld().items():
+    cell.set_edgecolor('none')
+    cell.set_text_props(ha='center', va='center')
+    # Set the header color gray
+    if key[0] == 0:
+        cell.set_text_props(weight='bold', color='#000000')
+        cell.set_facecolor('#D3D3D3')
+
+# Remove x and y axes
+ax.axis('off')
+# Display the table
+# plt.show()
+plt.savefig("table.jpg")
+
+
+
 
 
     
