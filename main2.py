@@ -56,7 +56,9 @@ def predict_next_price(input_price, intervals, interval_medians, flrg, k):
 def calculate_flrg(df):
     n = len(df)
     k = 1 + 3.322 * math.log10(n)
+    # print(f"Nilai k: {k}")
     k = int(round(k))
+    print(f"Jumlah kelas (k): {k}")
     range_data = df['Harga'].max() - df['Harga'].min()
     width = range_data / k
     intervals = []
@@ -71,7 +73,7 @@ def calculate_flrg(df):
     for i, interval in enumerate(intervals):
         median = (interval[0] + interval[1]) / 2
         interval_medians[f'A{i+1}'] = median
-        print(f"A{i+1}: {interval[0]} - {interval[1]} -> {median}")
+        print(f"A{i+1}: {interval[0]} - {interval[1]} dengan nilai median {median}")
     relationships = []
     for i in range(len(df) - 1):
         current_class = determine_interval(df.iloc[i]['Harga'], intervals, k)
@@ -101,6 +103,20 @@ def print_flrg_mapping(relationships):
         next_classes = ','.join(sorted(next_set))
         print(f"{current} -> {next_classes}")
 
+# def plot_membership_functions(intervals, interval_medians):
+#     plt.figure(figsize=(10, 6))
+#     for i, interval in enumerate(intervals):
+#         x = [interval[0], interval_medians[f'A{i+1}'], interval[1]]
+#         y = [0, 1, 0]
+#         plt.plot(x, y, label=f'A{i+1}')
+    
+#     plt.xlabel('Harga')
+#     plt.ylabel('Membership Degree')
+#     plt.title('Triangular Membership Functions')
+#     plt.legend()
+#     plt.grid(True)
+#     plt.show()
+
 
 def main():
     input_file_path = 'harga_singkong.csv'
@@ -109,19 +125,25 @@ def main():
     output_file_path2 = 'harga_singkong_augmented2.csv'
     validation_file_path = 'validation.csv'
 
-    df_combined = augment_data(input_file_path2, output_file_path2)
-    print("Data gabungan telah disimpan ke file:", output_file_path2)
-    # print(df_combined)
+    df = pd.read_csv(output_file_path2)
 
-    flrg, intervals, interval_medians, k, relationships= calculate_flrg(df_combined)
+    # df_combined = augment_data(input_file_path2, output_file_path2)
+    # print("Data gabungan telah disimpan ke file:", output_file_path2)
+    # # print(df_combined)
+
+    # print("
+    # flrg, intervals, interval_medians, k, relationships= calculate_flrg(df)
     # print("\nMapping FLRG untuk seluruh dataset:")
-    print_flrg_mapping(relationships)
+    # print_flrg_mapping(relationships)
+    # plot_membership_functions(intervals, interval_medians)
 
     # Perhitungan pertama: Split dataset 70:30
+    # Hanya menggunakan 70% data sebagai training
     print("\n--- Perhitungan dengan Split Dataset 70:30 ---")
-    train_df, val_df = train_test_split(df_combined, test_size=0.3, shuffle=False)
+    train_df, val_df = train_test_split(df, test_size=0.3, shuffle=False)
 
     flrg, intervals, interval_medians, k, relationships = calculate_flrg(train_df)
+    # print(f"Nilai k yang digunakan: {k}")
     # print("\nNilai FLRG:")
     # for key in sorted(flrg.keys()):
     #     print(f"{key} -> {flrg[key]}")
@@ -140,14 +162,15 @@ def main():
     print(f"MAPE pada set validasi (30% data): {mape:.5f}%")
 
     # Menampilkan beberapa prediksi
-    print("\nBeberapa prediksi pada set validasi (30% data):")
-    print(val_df[['Date', 'Harga', 'Predicted']].head())
+    # print("\nBeberapa prediksi pada set validasi (30% data):")
+    # print(val_df[['Date', 'Harga', 'Predicted']].head())
 
     # Perhitungan kedua: Menggunakan file validasi.csv
+    # Disini seluruh data digunakan sebagai training
     print("\n--- Perhitungan dengan File Validasi Eksternal ---")
     
     # Menggunakan seluruh data untuk training
-    flrg, intervals, interval_medians, k, relationships= calculate_flrg(df_combined)
+    flrg, intervals, interval_medians, k, relationships= calculate_flrg(df)
     
     # Membaca data validasi
     external_val_df = pd.read_csv(validation_file_path)
@@ -160,26 +183,26 @@ def main():
 
     external_val_df['Predicted'] = predicted_prices
 
-    # Menghitung MAPE untuk set validasi eksternal
-    mape = np.mean(np.abs((external_val_df['Real_values'] - external_val_df['Predicted']) / external_val_df['Real_values'])) * 100
-    print(f"MAPE pada set validasi eksternal: {mape:.5f}%")
+    # Menghitung mape_1 untuk set validasi eksternal
+    mape_1 = np.mean(np.abs((external_val_df['Real_values'] - external_val_df['Predicted']) / external_val_df['Real_values'])) * 100
+    print(f"MAPE pada set validasi eksternal: {mape_1:.5f}%")
 
     # Menampilkan beberapa prediksi
-    print("\nBeberapa prediksi pada set validasi eksternal:")
-    print(external_val_df.head())
+    # print("\nBeberapa prediksi pada set validasi eksternal:")
+    # print(external_val_df.head())
 
     # Opsi: Menampilkan statistik tambahan untuk validasi eksternal
-    mae = np.mean(np.abs(external_val_df['Real_values'] - external_val_df['Predicted']))
-    rmse = np.sqrt(np.mean((external_val_df['Real_values'] - external_val_df['Predicted'])**2))
+    mae_1 = np.mean(np.abs(external_val_df['Real_values'] - external_val_df['Predicted']))
+    rmse_1 = np.sqrt(np.mean((external_val_df['Real_values'] - external_val_df['Predicted'])**2))
     print(f"\nStatistik tambahan untuk validasi eksternal:")
-    print(f"MAE: {mae:.2f}")
-    print(f"RMSE: {rmse:.2f}")
+    print(f"mae_1: {mae_1:.2f}")
+    print(f"rmse_1: {rmse_1:.2f}")
 
     
 
     # # Print input file predicted prices
     # for i, price in enumerate(predicted_prices):
-    #     print(f"Harga: {df_combined.iloc[i]['Harga']}, Prediksi: {price}")
+    #     print(f"Prediksi harga ke-{i+1}: {price}")
 
     # # Print user input predicted prices
     # print("Input your price: ")
@@ -187,48 +210,117 @@ def main():
     # predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
     # print(f"Predicted price: {predicted_price}")
 
-   
+
 
 # Data yang diberikan
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-data = {
-    "Class": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"],
-    "Batas Bawah": [3077.00, 3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75],
-    "Median": [3100.625, 3147.875, 3195.125, 3242.375, 3289.625, 3336.875, 3384.125, 3431.375],
-    "Batas Atas": [3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75, 3455.00]
-}
+# data = {
+#     "Class": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"],
+#     "Batas Bawah": [3077.00, 3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75],
+#     "Median": [3100.625, 3147.875, 3195.125, 3242.375, 3289.625, 3336.875, 3384.125, 3431.375],
+#     "Batas Atas": [3124.25, 3171.50, 3218.75, 3266.00, 3313.25, 3360.50, 3407.75, 3455.00]
+# }
 
-# Transpose the data
-transposed_data = list(zip(*data.values()))
+# # Transpose the data
+# transposed_data = list(zip(*data.values()))
 
-fig, ax = plt.subplots(figsize=(6, 2))
+# fig, ax = plt.subplots(figsize=(6, 2))
 
-# Create the table
-table = ax.table(cellText=transposed_data,
-                 colLabels=list(data.keys()),
-                 loc='center')
+# # Create the table
+# table = ax.table(cellText=transposed_data,
+#                  colLabels=list(data.keys()),
+#                  loc='center')
 
 
-# Remove table lines and center the text
-table.auto_set_font_size(False)
-table.set_fontsize(12)
-table.scale(1.2, 1.2)
+# # Remove table lines and center the text
+# table.auto_set_font_size(False)
+# table.set_fontsize(12)
+# table.scale(1.2, 1.2)
 
-for key, cell in table.get_celld().items():
-    cell.set_edgecolor('none')
-    cell.set_text_props(ha='center', va='center')
-    # Set the header color gray
-    if key[0] == 0:
-        cell.set_text_props(weight='bold', color='#000000')
-        cell.set_facecolor('#D3D3D3')
+# for key, cell in table.get_celld().items():
+#     cell.set_edgecolor('none')
+#     cell.set_text_props(ha='center', va='center')
+#     # Set the header color gray
+#     if key[0] == 0:
+#         cell.set_text_props(weight='bold', color='#000000')
+#         cell.set_facecolor('#D3D3D3')
 
-# Remove x and y axes
-ax.axis('off')
-# Display the table
-# plt.show()
-plt.savefig("table.jpg")
+# # Remove x and y axes
+# ax.axis('off')
+# # Display the table
+# # plt.show()
+# plt.savefig("table.jpg")
+
+# Menggunakan augmented.csv
+    print("\n\n\n")
+    print(f"--- Menggunakan augmented.csv ---")
+    df = pd.read_csv(output_file_path)
+    flrg, intervals, interval_medians, k, relationships = calculate_flrg(df)
+    
+
+    # Prediksi untuk set validasi 
+    external_val_df = pd.read_csv(validation_file_path)
+    predicted_prices = []
+    for price in external_val_df['Input']:
+        predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
+        predicted_prices.append(predicted_price)
+    
+    external_val_df['Predicted'] = predicted_prices
+    mape_2 = np.mean(np.abs((external_val_df['Real_values'] - external_val_df['Predicted']) / external_val_df['Real_values'])) * 100
+    print(f"mape_2 pada set validasi eksternal: {mape_2:.5f}%")
+
+    # Opsi: Menampilkan statistik tambahan untuk validasi eksternal
+    mae_2 = np.mean(np.abs(external_val_df['Real_values'] - external_val_df['Predicted']))
+    rmse_2 = np.sqrt(np.mean((external_val_df['Real_values'] - external_val_df['Predicted'])**2))
+    print(f"\nStatistik tambahan untuk validasi eksternal:")
+    print(f"mae_2: {mae_2:.2f}")
+    print(f"rmse_2: {rmse_2:.2f}")
+
+
+    # Tanpa augmentasi
+    print("\n\n\n")
+    print(f"--- Tanpa augmentasi ---")
+    df = pd.read_csv(input_file_path)
+    flrg, intervals, interval_medians, k, relationships = calculate_flrg(df)
+
+    # Prediksi untuk set validasi
+    external_val_df = pd.read_csv(validation_file_path)
+    predicted_prices = []
+    for price in external_val_df['Input']:
+        predicted_price = predict_next_price(price, intervals, interval_medians, flrg, k)
+        predicted_prices.append(predicted_price)
+    
+    external_val_df['Predicted'] = predicted_prices
+    mape_3 = np.mean(np.abs((external_val_df['Real_values'] - external_val_df['Predicted']) / external_val_df['Real_values'])) * 100
+    print(f"mape_3 pada set validasi eksternal: {mape_3:.5f}%")
+
+    # Opsi: Menampilkan statistik tambahan untuk validasi eksternal
+    mae_3 = np.mean(np.abs(external_val_df['Real_values'] - external_val_df['Predicted']))
+    rmse_3 = np.sqrt(np.mean((external_val_df['Real_values'] - external_val_df['Predicted'])**2))
+    print(f"\nStatistik tambahan untuk validasi eksternal:")
+    print(f"mae_3: {mae_3:.2f}")
+    print(f"rmse_3: {rmse_3:.2f}")
+
+
+    # Tabel perbandingan antara jumlah data 106, 71, dan 36
+    data = {
+        "Model": ["106 Data", "71 Data", "36 Data"],
+        "MAPE": [mape_1, mape_2, mape_3],
+        "MAE": [mae_1, mae_2, mae_3],
+        "RMSE": [rmse_1, rmse_2, rmse_3]
+    }
+
+    transposed_data = list(zip(*data.values()))
+    plt.figure(figsize=(6, 2))
+    table = plt.table(cellText=transposed_data,
+                     colLabels=list(data.keys()),
+                     loc='center')
+    plt.axis('off')
+    plt.savefig("table.jpg")
+
+
 
 
 
